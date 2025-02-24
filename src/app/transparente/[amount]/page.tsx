@@ -1,14 +1,27 @@
 'use client'
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
-export default function Transparente() {
+export default function Transparente({ params }:any ) {
+
+  const router = useRouter()
+
+
   const [mp, setMp] = useState(null);
+  const { amount }: any = React.use(params)
+
+  const [errorMessage, setErrorMessage] = useState();
+  const [successMessage, setSuccessMessage] = useState();
+
+  console.log(amount)
+
+  console.log(amount)
 
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://sdk.mercadopago.com/js/v2";
     script.onload = () => {
-      const mpInstance = new window.MercadoPago("TEST-46acf6ec-f8c3-44b1-bf82-ab1dc2234ed5", {
+      const mpInstance = new window.MercadoPago(`${process.env.MP_ACCESS_TOKEN}`, {
         locale: "pt-BR",
       });
       setMp(mpInstance);
@@ -19,7 +32,7 @@ export default function Transparente() {
   useEffect(() => {
     if (mp) {
       const cardForm = mp.cardForm({
-        amount: "100.5",
+        amount: `${amount}`,
         iframe: true,
         form: {
           id: "form-checkout",
@@ -101,11 +114,20 @@ export default function Transparente() {
               }),
             })
             .then((response) => {
-                return response.json();
-            })
-            .then((result) => {
-                console.log(result); // Aqui você captura o resultado da API
-            })
+              if (!response.ok) {
+                  return Promise.reject(`Erro na requisição.`);
+              }
+              return response.json();
+          })
+          .then((res) => {
+              console.log(res);
+              router.push(`/transparente/successPayment`)
+          })
+          .catch((error) => {
+              console.log('Falha na requisição:', error);
+              router.push(`/transparente/failedPayment`)
+          });
+          
            
           },
           onFetching: (resource) => {
@@ -138,6 +160,18 @@ export default function Transparente() {
 
       <button type="submit" id="form-checkout__submit">Pagar</button>
       <progress value="0" className="progress-bar">Carregando...</progress>
+
+      {errorMessage && (
+        <>
+          <p>{errorMessage}</p>
+        </>
+      )}
+      {successMessage && (
+        <>
+          <p>{successMessage}</p>
+        </>
+      )}
+
     </form>
   );
 }
